@@ -46,6 +46,7 @@
     .card { padding: 16px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card-bg); display: flex; flex-direction: column; gap: 10px; }
     .card-title { font-size: 18px; font-weight: 600; }
     .card button { align-self: flex-start; }
+    .preview-canvas { width: 100%; height: 64px; border: 1px solid #e4e4e4; border-radius: 4px; margin-top: 6px; }
     .panel { margin-top: 28px; }
     .input-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
     input[type="text"] {
@@ -229,9 +230,9 @@
         `;
       }
 
-      function drawTrack(payload) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      function renderTrack(payload, canvasEl, options = {}) {
+        const ctx = canvasEl.getContext('2d');
+        ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
         if (!payload) return;
 
         const wins = payload.windows || [];
@@ -247,9 +248,13 @@
           1
         );
 
-        const padL = 50, padR = 20, padT = 28;
-        const trackY = padT, trackH = 26;
-        const innerW = Math.max(canvas.width - padL - padR, 20);
+        const compact = Boolean(options.compact);
+        const padL = compact ? 30 : 50;
+        const padR = 16;
+        const padT = compact ? 16 : 28;
+        const trackY = padT;
+        const trackH = compact ? 18 : 26;
+        const innerW = Math.max(canvasEl.width - padL - padR, 20);
         const xScale = x => padL + (x / maxExtent) * innerW;
 
         ctx.fillStyle = '#f1f3f7';
@@ -269,17 +274,17 @@
           const x2 = xScale(Math.max(w.start, w.end));
           const width = Math.max(1, x2 - x1);
           ctx.fillStyle = w.idr ? '#2e7d32' : '#6e6e6e';
-          ctx.fillRect(x1, trackY + 4, width, trackH - 8);
+          ctx.fillRect(x1, trackY + (compact ? 3 : 4), width, trackH - (compact ? 6 : 8));
         });
 
         if (ptmSites.length) {
           ctx.strokeStyle = '#c62828';
-          ctx.lineWidth = 2;
+          ctx.lineWidth = compact ? 1.5 : 2;
           ptmSites.forEach(site => {
             const x = xScale(site.position || 0);
             ctx.beginPath();
-            ctx.moveTo(x, trackY + trackH + 4);
-            ctx.lineTo(x, trackY + trackH - 8);
+            ctx.moveTo(x, trackY + trackH + 2);
+            ctx.lineTo(x, trackY + trackH - (compact ? 6 : 8));
             ctx.stroke();
           });
         }
@@ -289,15 +294,17 @@
         ctx.strokeRect(padL, trackY, innerW, trackH);
 
         ctx.fillStyle = '#454545';
-        ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-        const ticks = [0, 0.25, 0.5, 0.75, 1];
+        ctx.font = compact ? '10px system-ui, -apple-system, Segoe UI, Roboto, sans-serif' : '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+        const ticks = compact ? [0, 0.5, 1] : [0, 0.25, 0.5, 0.75, 1];
         ticks.forEach(f => {
           const x = xScale(maxExtent * f);
-          ctx.fillRect(x, trackY + trackH + 2, 1, 6);
+          ctx.fillRect(x, trackY + trackH + 2, 1, compact ? 4 : 6);
           const label = Math.round(maxExtent * f);
-          ctx.fillText(label.toString(), x - 8, trackY + trackH + 18);
+          ctx.fillText(label.toString(), x - (compact ? 6 : 8), trackY + trackH + (compact ? 14 : 18));
         });
-        ctx.fillText('Residue position', padL, trackY - 10);
+        if (!compact) {
+          ctx.fillText('Residue position', padL, trackY - 10);
+        }
       }
 
       function loadProtein(acc) {
@@ -310,7 +317,7 @@
           .then(data => {
             pstat.textContent = `Loaded ${data.accession} • ${data.windows.length} significant windows`;
             pview.innerHTML = fmtWindows(data.windows);
-            drawTrack(data);
+            renderTrack(data, canvas);
             if (data.ptm_sites && data.ptm_sites.length) {
               const hint = document.createElement('div');
               hint.className = 'muted';
@@ -321,7 +328,7 @@
           .catch(e => {
             pstat.textContent = '';
             pview.innerHTML = `<div class="error">No hotspot data for ${clean} (or accession not in this release).</div>`;
-            drawTrack(null);
+            renderTrack(null, canvas);
           });
       }
 
@@ -333,6 +340,27 @@
           input.value = acc;
           loadProtein(acc);
         });
+      });
+
+      // Build preview canvases for featured cards
+      featuredGrid.querySelectorAll('.card').forEach(card => {
+        const button = card.querySelector('button[data-acc]');
+        const acc = button ? button.getAttribute('data-acc') : null;
+        if (!acc) return;
+        const preview = document.createElement('canvas');
+        preview.width = 320;
+        preview.height = 70;
+        preview.className = 'preview-canvas';
+        card.insertBefore(preview, button);
+
+        fetch(`results/atlas/v1.0/proteins/${encodeURIComponent(acc)}.json`, { cache: 'no-store' })
+          .then(r => (r.ok ? r.json() : null))
+          .then(data => {
+            if (data) {
+              renderTrack(data, preview, { compact: true });
+            }
+          })
+          .catch(() => {});
       });
 
       loadProtein('P00533');
