@@ -118,7 +118,7 @@
       <div id="protein-status" class="muted"></div>
       <div id="protein-view"></div>
       <canvas id="protein-canvas" width="920" height="140" style="width:100%; height:140px; margin-top:12px"></canvas>
-      <div class="muted" style="margin-top:6px">Legend: <span style="display:inline-block;width:12px;height:12px;background:#2e7d32;margin:0 4px 0 8px"></span>IDR hotspot <span style="display:inline-block;width:12px;height:12px;background:#6e6e6e;margin:0 4px 0 12px"></span>Ordered hotspot</div>
+      <div class="muted" style="margin-top:6px">Legend: <span style="display:inline-block;width:14px;height:14px;background:rgba(46,125,50,0.18);margin:0 4px 0 8px;border:1px solid rgba(46,125,50,0.4)"></span>IDR span <span style="display:inline-block;width:14px;height:6px;background:#2e7d32;margin:0 4px 0 12px"></span>IDR hotspot <span style="display:inline-block;width:14px;height:6px;background:#6e6e6e;margin:0 4px 0 12px"></span>Ordered hotspot <span style="display:inline-block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:8px solid #c62828;margin:0 6px"></span>Curated PTM</div>
     </section>
 
     <section class="panel">
@@ -229,27 +229,60 @@
         `;
       }
 
-      function drawTrack(wins) {
+      function drawTrack(payload) {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (!wins || wins.length === 0) return;
+        if (!payload) return;
 
-        const maxEnd = Math.max(...wins.map(w => w.end || 0), 1);
+        const wins = payload.windows || [];
+        const idrSegs = payload.idr_segments || [];
+        const ptmSites = payload.ptm_sites || [];
+        const declaredLength = payload.length || 0;
+
+        const maxExtent = Math.max(
+          declaredLength,
+          wins.reduce((m, w) => Math.max(m, w.end || 0), 0),
+          idrSegs.reduce((m, s) => Math.max(m, s.end || 0), 0),
+          ptmSites.reduce((m, s) => Math.max(m, s.position || 0), 0),
+          1
+        );
+
         const padL = 50, padR = 20, padT = 28;
         const trackY = padT, trackH = 26;
         const innerW = Math.max(canvas.width - padL - padR, 20);
-        const xScale = x => padL + (x / maxEnd) * innerW;
+        const xScale = x => padL + (x / maxExtent) * innerW;
 
         ctx.fillStyle = '#f1f3f7';
         ctx.fillRect(padL, trackY, innerW, trackH);
+
+        if (idrSegs.length) {
+          ctx.fillStyle = 'rgba(46, 125, 50, 0.18)';
+          idrSegs.forEach(seg => {
+            const x1 = xScale(Math.max(0, (seg.start || 1) - 1));
+            const x2 = xScale(Math.max(seg.start || 1, seg.end || seg.start));
+            ctx.fillRect(x1, trackY, Math.max(1, x2 - x1), trackH);
+          });
+        }
 
         wins.forEach(w => {
           const x1 = xScale(Math.max(0, w.start - 1));
           const x2 = xScale(Math.max(w.start, w.end));
           const width = Math.max(1, x2 - x1);
           ctx.fillStyle = w.idr ? '#2e7d32' : '#6e6e6e';
-          ctx.fillRect(x1, trackY, width, trackH);
+          ctx.fillRect(x1, trackY + 4, width, trackH - 8);
         });
+
+        if (ptmSites.length) {
+          ctx.strokeStyle = '#c62828';
+          ctx.lineWidth = 2;
+          ptmSites.forEach(site => {
+            const x = xScale(site.position || 0);
+            ctx.beginPath();
+            ctx.moveTo(x, trackY + trackH + 4);
+            ctx.lineTo(x, trackY + trackH - 8);
+            ctx.stroke();
+          });
+        }
 
         ctx.strokeStyle = '#d1d6e6';
         ctx.lineWidth = 1;
@@ -259,9 +292,9 @@
         ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
         const ticks = [0, 0.25, 0.5, 0.75, 1];
         ticks.forEach(f => {
-          const x = xScale(maxEnd * f);
+          const x = xScale(maxExtent * f);
           ctx.fillRect(x, trackY + trackH + 2, 1, 6);
-          const label = Math.round(maxEnd * f);
+          const label = Math.round(maxExtent * f);
           ctx.fillText(label.toString(), x - 8, trackY + trackH + 18);
         });
         ctx.fillText('Residue position', padL, trackY - 10);
@@ -277,12 +310,18 @@
           .then(data => {
             pstat.textContent = `Loaded ${data.accession} • ${data.windows.length} significant windows`;
             pview.innerHTML = fmtWindows(data.windows);
-            drawTrack(data.windows);
+            drawTrack(data);
+            if (data.ptm_sites && data.ptm_sites.length) {
+              const hint = document.createElement('div');
+              hint.className = 'muted';
+              hint.textContent = `PTM markers: ${data.ptm_sites.length} curated sites`;
+              pview.appendChild(hint);
+            }
           })
           .catch(e => {
             pstat.textContent = '';
             pview.innerHTML = `<div class="error">No hotspot data for ${clean} (or accession not in this release).</div>`;
-            drawTrack([]);
+            drawTrack(null);
           });
       }
 

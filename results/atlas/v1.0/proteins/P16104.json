@@ -1,1 +1,1 @@
-{"accession":"P16104","windows":[{"start":129,"end":143,"q":0.0697681641737585,"idr":false,"ptm_count":2,"signif":true}]}
+{"accession":"P16104","windows":[{"start":129,"end":143,"q":0.0697681641737585,"idr":false,"ptm_count":2,"signif":true}],"length":143,"idr_segments":[{"start":122,"end":125},{"start":127,"end":128},{"start":131,"end":133},{"start":135,"end":135},{"start":138,"end":138}],"ptm_sites":[{"position":6,"type":"N6-acetyllysine"},{"position":140,"type":"Phosphoserine; by ATM, ATR and PRKDC"},{"position":143,"type":"Phosphotyrosine; by WSTF"}]}

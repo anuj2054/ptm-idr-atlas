@@ -1,1 +1,1 @@
-{"accession":"O96033","windows":[{"start":75,"end":89,"q":0.0682196144956536,"idr":false,"ptm_count":2,"signif":true}]}
+{"accession":"O96033","windows":[{"start":75,"end":89,"q":0.0682196144956536,"idr":false,"ptm_count":2,"signif":true}],"length":88,"idr_segments":[{"start":14,"end":14},{"start":34,"end":34},{"start":47,"end":47},{"start":60,"end":60},{"start":87,"end":88},{"start":88,"end":88}],"ptm_sites":[{"position":88,"type":"1-thioglycine; alternate"},{"position":88,"type":"Glycyl adenylate; alternate"}]}

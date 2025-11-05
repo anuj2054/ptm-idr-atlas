@@ -1,1 +1,1 @@
-{"accession":"P67870","windows":[{"start":1,"end":15,"q":0.0211150211150211,"idr":false,"ptm_count":2,"signif":true},{"start":2,"end":16,"q":0.0211150211150211,"idr":false,"ptm_count":2,"signif":true}]}
+{"accession":"P67870","windows":[{"start":1,"end":15,"q":0.0211150211150211,"idr":false,"ptm_count":2,"signif":true},{"start":2,"end":16,"q":0.0211150211150211,"idr":false,"ptm_count":2,"signif":true}],"length":215,"idr_segments":[{"start":1,"end":2}],"ptm_sites":[{"position":2,"type":"Phosphoserine; by autocatalysis"},{"position":3,"type":"Phosphoserine; by autocatalysis"}]}
