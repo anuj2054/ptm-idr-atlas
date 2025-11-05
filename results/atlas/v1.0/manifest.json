@@ -1,0 +1,109 @@
+{
+  "atlas_version": "1.0.0",
+  "generated_at": "2025-11-05T10:07:59.393682Z",
+  "code_sha": "5db8e75a8e6e1b5e022b39054f0e4a30c259693a",
+  "run_directory": "results/runs/000-full-human-proteome",
+  "config": {
+    "window_sizes": [
+      9,
+      15,
+      21
+    ],
+    "hotspot_min_ptms": [
+      2,
+      3
+    ],
+    "hotspot_thresholds_M": [
+      2,
+      3
+    ],
+    "permutation_n": 10000,
+    "random_seed": 13,
+    "idr_threshold": 0.5,
+    "q_threshold": 0.1,
+    "ptm_sources": [
+      "uniprot"
+    ],
+    "disorder_backends": [
+      "metapredict"
+    ]
+  },
+  "input_snapshots": {
+    "proteome_fasta": "data/raw/uniprot_proteome_human.fasta",
+    "ptm_table": "data/raw/ptm_uniprot.tsv",
+    "variants_table": "data/raw/clinvar_variants.tsv",
+    "elm_motifs": "data/raw/elm_motifs.tsv"
+  },
+  "artifacts": [
+    {
+      "filename": "hotspot_windows_annotated.tsv",
+      "format": "tsv",
+      "size_bytes": 1979027
+    },
+    {
+      "filename": "hotspot_windows_annotated.parquet",
+      "format": "parquet",
+      "size_bytes": 144098
+    },
+    {
+      "filename": "hotspot_protein_summary.tsv",
+      "format": "tsv",
+      "size_bytes": 15361
+    },
+    {
+      "filename": "hotspot_protein_summary.parquet",
+      "format": "parquet",
+      "size_bytes": 13180
+    },
+    {
+      "filename": "hotspots.tsv",
+      "format": "tsv",
+      "size_bytes": 410793
+    },
+    {
+      "filename": "hotspots.parquet",
+      "format": "parquet",
+      "size_bytes": 145990
+    },
+    {
+      "filename": "ptm_enrichment.tsv",
+      "format": "tsv",
+      "size_bytes": 13465679
+    },
+    {
+      "filename": "ptm_enrichment.parquet",
+      "format": "parquet",
+      "size_bytes": 2633594
+    },
+    {
+      "filename": "iptmnet_overlap.tsv",
+      "format": "tsv",
+      "size_bytes": 2229
+    },
+    {
+      "filename": "iptmnet_overlap.parquet",
+      "format": "parquet",
+      "size_bytes": 9797
+    },
+    {
+      "filename": "motif_overlap.tsv",
+      "format": "tsv",
+      "size_bytes": 57912
+    },
+    {
+      "filename": "motif_overlap.parquet",
+      "format": "parquet",
+      "size_bytes": 36343
+    },
+    {
+      "filename": "variant_proximity.tsv",
+      "format": "tsv",
+      "size_bytes": 1494946
+    },
+    {
+      "filename": "variant_proximity.parquet",
+      "format": "parquet",
+      "size_bytes": 310873
+    }
+  ]
+}

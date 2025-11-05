@@ -1,0 +1,155 @@
+{
+  "project": "PTM-IDR Atlas",
+  "description": "Post-translational modifications in intrinsically disordered regions",
+  "version": "1.0.0",
+  "generated_at": "2025-11-05T10:07:59.393682Z",
+  "code_sha": "5db8e75a8e6e1b5e022b39054f0e4a30c259693a",
+  "base_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0",
+  "artifacts": [
+    {
+      "filename": "hotspot_windows_annotated.tsv",
+      "format": "tsv",
+      "size_bytes": 1979027,
+      "size_mb": 1.89,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/hotspot_windows_annotated.tsv",
+      "description": "Annotated hotspot windows with IDR localization and significance flags"
+    },
+    {
+      "filename": "hotspot_windows_annotated.parquet",
+      "format": "parquet",
+      "size_bytes": 144098,
+      "size_mb": 0.14,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/hotspot_windows_annotated.parquet",
+      "description": "Annotated hotspot windows with IDR localization and significance flags"
+    },
+    {
+      "filename": "hotspot_protein_summary.tsv",
+      "format": "tsv",
+      "size_bytes": 15361,
+      "size_mb": 0.01,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/hotspot_protein_summary.tsv",
+      "description": "Per-protein hotspot counts (total, IDR-localized, significant)"
+    },
+    {
+      "filename": "hotspot_protein_summary.parquet",
+      "format": "parquet",
+      "size_bytes": 13180,
+      "size_mb": 0.01,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/hotspot_protein_summary.parquet",
+      "description": "Per-protein hotspot counts (total, IDR-localized, significant)"
+    },
+    {
+      "filename": "hotspots.tsv",
+      "format": "tsv",
+      "size_bytes": 410793,
+      "size_mb": 0.39,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/hotspots.tsv",
+      "description": "Per-protein hotspot statistics with FWER correction"
+    },
+    {
+      "filename": "hotspots.parquet",
+      "format": "parquet",
+      "size_bytes": 145990,
+      "size_mb": 0.14,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/hotspots.parquet",
+      "description": "Per-protein hotspot statistics with FWER correction"
+    },
+    {
+      "filename": "ptm_enrichment.tsv",
+      "format": "tsv",
+      "size_bytes": 13465679,
+      "size_mb": 12.84,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/ptm_enrichment.tsv",
+      "description": "PTM enrichment analysis (IDR vs ordered regions)"
+    },
+    {
+      "filename": "ptm_enrichment.parquet",
+      "format": "parquet",
+      "size_bytes": 2633594,
+      "size_mb": 2.51,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/ptm_enrichment.parquet",
+      "description": "PTM enrichment analysis (IDR vs ordered regions)"
+    },
+    {
+      "filename": "iptmnet_overlap.tsv",
+      "format": "tsv",
+      "size_bytes": 2229,
+      "size_mb": 0.0,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/iptmnet_overlap.tsv",
+      "description": "IPTMNet validation overlap statistics"
+    },
+    {
+      "filename": "iptmnet_overlap.parquet",
+      "format": "parquet",
+      "size_bytes": 9797,
+      "size_mb": 0.01,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/iptmnet_overlap.parquet",
+      "description": "IPTMNet validation overlap statistics"
+    },
+    {
+      "filename": "motif_overlap.tsv",
+      "format": "tsv",
+      "size_bytes": 57912,
+      "size_mb": 0.06,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/motif_overlap.tsv",
+      "description": "ELM motif enrichment in hotspot regions"
+    },
+    {
+      "filename": "motif_overlap.parquet",
+      "format": "parquet",
+      "size_bytes": 36343,
+      "size_mb": 0.03,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/motif_overlap.parquet",
+      "description": "ELM motif enrichment in hotspot regions"
+    },
+    {
+      "filename": "variant_proximity.tsv",
+      "format": "tsv",
+      "size_bytes": 1494946,
+      "size_mb": 1.43,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/variant_proximity.tsv",
+      "description": "Clinical variant proximity to hotspot windows"
+    },
+    {
+      "filename": "variant_proximity.parquet",
+      "format": "parquet",
+      "size_bytes": 310873,
+      "size_mb": 0.3,
+      "download_url": "https://raw.githubusercontent.com/anuj2054/ptm-idr-atlas/main/results/atlas/v1.0/variant_proximity.parquet",
+      "description": "Clinical variant proximity to hotspot windows"
+    }
+  ],
+  "metadata": {
+    "config": {
+      "window_sizes": [
+        9,
+        15,
+        21
+      ],
+      "hotspot_min_ptms": [
+        2,
+        3
+      ],
+      "hotspot_thresholds_M": [
+        2,
+        3
+      ],
+      "permutation_n": 10000,
+      "random_seed": 13,
+      "idr_threshold": 0.5,
+      "q_threshold": 0.1,
+      "ptm_sources": [
+        "uniprot"
+      ],
+      "disorder_backends": [
+        "metapredict"
+      ]
+    },
+    "input_snapshots": {
+      "proteome_fasta": "data/raw/uniprot_proteome_human.fasta",
+      "ptm_table": "data/raw/ptm_uniprot.tsv",
+      "variants_table": "data/raw/clinvar_variants.tsv",
+      "elm_motifs": "data/raw/elm_motifs.tsv"
+    }
+  }
+}
