@@ -133,6 +133,7 @@
           <label><input type="checkbox" id="toggle-idr-hotspots" checked> IDR hotspots</label>
           <label><input type="checkbox" id="toggle-ordered-hotspots" checked> Ordered hotspots</label>
           <label><input type="checkbox" id="toggle-ptms" checked> PTM markers</label>
+          <label><input type="checkbox" id="toggle-variants" checked> Variant markers</label>
         </div>
       </div>
       <canvas id="protein-canvas" width="920" height="180" style="width:100%; height:180px; margin-top:14px"></canvas>
@@ -141,6 +142,7 @@
         <span style="display:inline-block;width:16px;height:6px;background:#2e7d32;margin:0 4px 0 12px"></span>IDR hotspot
         <span style="display:inline-block;width:16px;height:6px;background:#6e6e6e;margin:0 4px 0 12px"></span>Ordered hotspot
         <span style="display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:10px solid #c62828;margin:0 6px"></span>Curated PTM
+        <span style="display:inline-block;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid #d32f2f;margin:0 4px 0 12px"></span>Variants (pathogenic red, benign blue, other brown)
       </div>
       <div id="protein-table" style="margin-top:14px"></div>
     </section>
@@ -183,6 +185,7 @@
       const toggleIdrHotspots = document.getElementById('toggle-idr-hotspots');
       const toggleOrderedHotspots = document.getElementById('toggle-ordered-hotspots');
       const togglePtms = document.getElementById('toggle-ptms');
+      const toggleVariants = document.getElementById('toggle-variants');
       const motifList = document.getElementById('motif-list');
 
       const renderFlags = {
@@ -190,12 +193,37 @@
         showIdrHotspots: true,
         showOrderedHotspots: true,
         showPtms: true,
+        showVariants: true,
+      };
+
+      const VARIANT_COLORS = {
+        pathogenic: '#d32f2f',
+        benign: '#1565c0',
+        other: '#795548',
+        unknown: '#795548',
       };
 
       let currentPayload = null;
       let currentMeta = null;
       let highlightWindow = null;
+      let highlightVariant = null;
       let tableRows = [];
+
+      const classifyVariant = significance => {
+        const text = String(significance || 'Unknown').toLowerCase();
+        if (text.includes('pathogenic') && !text.includes('benign')) return 'pathogenic';
+        if (text.includes('benign') && !text.includes('pathogenic')) return 'benign';
+        if (text.includes('uncertain') || text.includes('vus')) return 'other';
+        return 'unknown';
+      };
+
+      const variantColor = variant => {
+        const cls = classifyVariant(variant?.significance);
+        return VARIANT_COLORS[cls] || VARIANT_COLORS.unknown;
+      };
+
+      const highlightsSameVariant = (a, b) =>
+        a && b && typeof a.id !== 'undefined' && typeof b.id !== 'undefined' && a.id === b.id;
 
       fetch('index.json', { cache: 'no-store' })
         .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -303,9 +331,12 @@
         const medianPtm = stats.median_ptm_count != null ? stats.median_ptm_count : '—';
         const ptmSites = stats.ptm_site_count ?? (payload.ptm_sites ? payload.ptm_sites.length : 0);
         const variantStats = payload.variants || null;
+        const variantTotal = variantStats?.total ?? 0;
+        const variantHotspot = variantStats?.hotspot ?? 0;
+        const variantPath = variantStats?.pathogenic_hotspot ?? 0;
+        const variantBenign = variantStats?.benign_hotspot ?? 0;
         const variantLine = variantStats
-          ? `Variants: ${variantStats.total ?? 0} total • Hotspot ${variantStats.hotspot ?? 0}` +
-            `${variantStats.pathogenic_hotspot != null ? ` (pathogenic ${variantStats.pathogenic_hotspot})` : ''}`
+          ? `Variants: ${variantTotal} total • Hotspot ${variantHotspot} (path ${variantPath}, benign ${variantBenign})`
           : 'Variants: —';
 
         infoPanel.innerHTML = `
@@ -325,6 +356,13 @@
         });
       }
 
+      function findWindowForVariant(variant) {
+        if (!currentPayload || !Array.isArray(currentPayload.windows)) return null;
+        return currentPayload.windows.find(
+          w => variant.position >= w.start && variant.position <= w.end
+        ) || null;
+      }
+
       function renderTrack(payload, canvasEl, options = {}) {
         const ctx = canvasEl.getContext('2d');
         ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
@@ -333,12 +371,16 @@
         const wins = payload.windows || [];
         const idrSegs = payload.idr_segments || [];
         const ptmSites = payload.ptm_sites || [];
+        const variantStats = payload.variants || {};
+        const variantList = Array.isArray(variantStats.details) ? variantStats.details : [];
         const declaredLength = payload.length || 0;
 
         const showIdrShading = options.showIdrShading !== false;
         const showIdrHotspots = options.showIdrHotspots !== false;
         const showOrderedHotspots = options.showOrderedHotspots !== false;
         const showPtms = options.showPtms !== false;
+        const showVariants = options.showVariants !== false;
+        const highlightVariantOption = options.highlightVariant || null;
 
         const maxExtent = Math.max(
           declaredLength,
@@ -358,6 +400,7 @@
         const xScale = x => padL + (x / maxExtent) * innerW;
 
         const segments = [];
+        const variantSegments = [];
 
         ctx.fillStyle = '#f1f3f7';
         ctx.fillRect(padL, trackY, innerW, trackH);
@@ -418,6 +461,35 @@
           });
         }
 
+        if (showVariants && variantList.length) {
+          const markerSize = compact ? 4 : 6;
+          const baseY = trackY - 2;
+          variantList.forEach(variant => {
+            const pos = Math.max(0, (variant.position || 1) - 1);
+            const x = xScale(pos);
+            const yTop = baseY - markerSize - (compact ? 2 : 4);
+            ctx.fillStyle = variantColor(variant);
+            ctx.beginPath();
+            ctx.moveTo(x, baseY);
+            ctx.lineTo(x - markerSize, yTop);
+            ctx.lineTo(x + markerSize, yTop);
+            ctx.closePath();
+            ctx.fill();
+            if (highlightVariantOption && highlightsSameVariant(highlightVariantOption, variant)) {
+              ctx.strokeStyle = '#111';
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+            }
+            variantSegments.push({
+              x1: x - markerSize,
+              x2: x + markerSize,
+              y1: yTop,
+              y2: baseY,
+              variant,
+            });
+          });
+        }
+
         ctx.strokeStyle = '#d1d6e6';
         ctx.lineWidth = 1;
         ctx.strokeRect(padL, trackY, innerW, trackH);
@@ -436,29 +508,35 @@
         }
 
         if (options.captureSegments) {
-          return { segments, padL, padR, trackY, trackH, innerW, maxExtent };
+          return { segments, variantSegments, padL, padR, trackY, trackH, innerW, maxExtent };
         }
         return null;
       }
 
-      function drawMainTrack(targetWindow) {
+      function drawMainTrack(targetWindow, targetVariant) {
         if (!currentPayload) {
           renderTrack(null, canvas);
           currentMeta = null;
           setRowHighlight(null);
+          highlightWindow = null;
+          highlightVariant = null;
           return;
         }
-        const highlight = targetWindow || null;
-        highlightWindow = highlight;
+        const windowHighlight = targetWindow || null;
+        const variantHighlight = renderFlags.showVariants ? targetVariant || null : null;
+        highlightWindow = windowHighlight;
+        highlightVariant = variantHighlight;
         currentMeta = renderTrack(currentPayload, canvas, {
           captureSegments: true,
-          highlightWindow: highlight,
+          highlightWindow: windowHighlight,
+          highlightVariant: variantHighlight,
           showIdrShading: renderFlags.showIdrShading,
           showIdrHotspots: renderFlags.showIdrHotspots,
           showOrderedHotspots: renderFlags.showOrderedHotspots,
           showPtms: renderFlags.showPtms,
+          showVariants: renderFlags.showVariants,
         });
-        setRowHighlight(highlight ? highlight.__index : null);
+        setRowHighlight(windowHighlight ? windowHighlight.__index : null);
       }
 
       function applyRenderFlags() {
@@ -468,7 +546,10 @@
             highlightWindow = null;
           }
         }
-        drawMainTrack(highlightWindow);
+        if (!renderFlags.showVariants) {
+          highlightVariant = null;
+        }
+        drawMainTrack(highlightWindow, highlightVariant);
       }
 
       function attachRowListeners() {
@@ -481,12 +562,14 @@
             const w = currentPayload.windows[idx];
             if (!w) return;
             highlightWindow = w;
-            drawMainTrack(w);
+            highlightVariant = null;
+            drawMainTrack(w, null);
           });
           row.addEventListener('mouseleave', () => {
             tooltip.style.display = 'none';
             highlightWindow = null;
-            drawMainTrack(null);
+            highlightVariant = null;
+            drawMainTrack(null, null);
           });
         });
       }
@@ -526,12 +609,14 @@
               hint.textContent = `PTM markers: ${data.ptm_sites.length} curated sites`;
               tableContainer.appendChild(hint);
             }
-            drawMainTrack(null);
+            highlightVariant = null;
+            drawMainTrack(null, null);
           })
           .catch(() => {
             currentPayload = null;
             highlightWindow = null;
-            drawMainTrack(null);
+            highlightVariant = null;
+            drawMainTrack(null, null);
             status.textContent = '';
             updateInfoPanel(null);
             tableContainer.innerHTML = `<div class="error">No hotspot data for ${clean} (or accession not in this release).</div>`;
@@ -541,7 +626,7 @@
       function renderPreview(acc, canvasEl) {
         fetch(`results/atlas/v1.0/proteins/${encodeURIComponent(acc)}.json`, { cache: 'no-store' })
           .then(r => (r.ok ? r.json() : null))
-          .then(data => { if (data) renderTrack(data, canvasEl, { compact: true }); })
+          .then(data => { if (data) renderTrack(data, canvasEl, { compact: true, showVariants: false }); })
           .catch(() => {});
       }
 
@@ -589,36 +674,59 @@
         renderFlags.showPtms = togglePtms.checked;
         applyRenderFlags();
       });
+      toggleVariants.addEventListener('change', () => {
+        renderFlags.showVariants = toggleVariants.checked;
+        applyRenderFlags();
+      });
 
       canvas.addEventListener('mousemove', evt => {
-        if (!currentMeta || !currentMeta.segments) return;
+        if (!currentMeta) return;
         const pos = canvasCoords(evt);
-        const seg = currentMeta.segments.find(s => pos.x >= s.x1 && pos.x <= s.x2 && pos.y >= s.y1 && pos.y <= s.y2);
-        if (seg) {
-          if (highlightWindow !== seg.window) {
-            highlightWindow = seg.window;
-            drawMainTrack(seg.window);
+
+        let handled = false;
+        if (renderFlags.showVariants && currentMeta.variantSegments) {
+          const vSeg = currentMeta.variantSegments.find(s => pos.x >= s.x1 && pos.x <= s.x2 && pos.y >= s.y1 && pos.y <= s.y2);
+          if (vSeg) {
+            const variant = vSeg.variant;
+            const windowMatch = variant.in_hotspot ? findWindowForVariant(variant) : null;
+            drawMainTrack(windowMatch, variant);
+            tooltip.style.display = 'block';
+            tooltip.style.left = `${pos.pageX + 12}px`;
+            tooltip.style.top = `${pos.pageY + 12}px`;
+            tooltip.innerHTML = `Variant ${variant.position}${variant.in_hotspot ? ' inside hotspot' : ' outside hotspot'}<br>` +
+              `Significance: ${variant.significance || 'Unknown'}`;
+            handled = true;
           }
-          tooltip.style.display = 'block';
-          tooltip.style.left = `${pos.pageX + 12}px`;
-          tooltip.style.top = `${pos.pageY + 12}px`;
-          tooltip.innerHTML = `Residues ${seg.window.start}-${seg.window.end}<br>${seg.window.idr ? 'IDR hotspot' : 'Ordered hotspot'}<br>` +
-            `PTMs: ${seg.window.ptm_count}${seg.window.q != null ? `<br>q = ${seg.window.q.toExponential(2)}` : ''}`;
-        } else {
-          if (highlightWindow) {
-            highlightWindow = null;
-            drawMainTrack(null);
+        }
+
+        if (!handled && currentMeta.segments) {
+          const seg = currentMeta.segments.find(s => pos.x >= s.x1 && pos.x <= s.x2 && pos.y >= s.y1 && pos.y <= s.y2);
+          if (seg) {
+            drawMainTrack(seg.window, null);
+            tooltip.style.display = 'block';
+            tooltip.style.left = `${pos.pageX + 12}px`;
+            tooltip.style.top = `${pos.pageY + 12}px`;
+            tooltip.innerHTML = `Residues ${seg.window.start}-${seg.window.end}<br>${seg.window.idr ? 'IDR hotspot' : 'Ordered hotspot'}<br>` +
+              `PTMs: ${seg.window.ptm_count}${seg.window.q != null ? `<br>q = ${seg.window.q.toExponential(2)}` : ''}`;
+            handled = true;
           }
+        }
+
+        if (!handled) {
           tooltip.style.display = 'none';
+          if (highlightWindow || highlightVariant) {
+            highlightWindow = null;
+            highlightVariant = null;
+            drawMainTrack(null, null);
+          }
         }
       });
 
       canvas.addEventListener('mouseleave', () => {
         tooltip.style.display = 'none';
-        if (highlightWindow) {
-          highlightWindow = null;
-          drawMainTrack(null);
-        }
+        highlightWindow = null;
+        highlightVariant = null;
+        drawMainTrack(null, null);
       });
 
       loadProtein('P00533');
