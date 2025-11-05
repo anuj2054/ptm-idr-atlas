@@ -97,7 +97,7 @@
       <h2>What’s inside</h2>
       <ul>
         <li>Hotspot windows annotated with IDR localization and significance testing.</li>
-        <li>Per-protein summaries capturing hotspot counts and regulatory burden.</li>
+        <li>Per-protein summaries capturing PTM hotspot counts and regulatory burden.</li>
         <li>Validation overlays (ELM motifs, IPTMNet, variant proximity) for downstream interpretation.</li>
       </ul>
       <div class="muted">For full artifact metadata see <code>site/index.json</code>.</div>
@@ -117,7 +117,7 @@
 
     <section class="panel">
       <h2>Interactive protein browser</h2>
-      <div class="muted">Inspect significant hotspot windows for any UniProt accession.</div>
+      <div class="muted">Inspect significant PTM hotspot windows for any UniProt accession.</div>
       <div class="input-row">
         <input id="acc-input" type="text" placeholder="Enter UniProt accession (e.g., P00533)">
         <button id="acc-load" class="load-btn">Load protein</button>
@@ -130,8 +130,8 @@
         </div>
         <div class="toggle-group">
           <label><input type="checkbox" id="toggle-idr-shading" checked> IDR shading</label>
-          <label><input type="checkbox" id="toggle-idr-hotspots" checked> IDR hotspots</label>
-          <label><input type="checkbox" id="toggle-ordered-hotspots" checked> Ordered hotspots</label>
+          <label><input type="checkbox" id="toggle-idr-hotspots" checked> IDR PTM hotspots</label>
+          <label><input type="checkbox" id="toggle-ordered-hotspots" checked> Ordered-region PTM hotspots</label>
           <label><input type="checkbox" id="toggle-ptms" checked> PTM markers</label>
           <label><input type="checkbox" id="toggle-variants" checked> Variant markers</label>
         </div>
@@ -139,14 +139,14 @@
       <canvas id="protein-canvas" width="920" height="180" style="width:100%; height:180px; margin-top:14px"></canvas>
       <div class="muted" style="margin-top:6px">Legend:
         <span style="display:inline-block;width:16px;height:16px;background:rgba(46,125,50,0.18);margin:0 4px 0 8px;border:1px solid rgba(46,125,50,0.4)"></span>IDR region (consensus disorder ≥ threshold)
-        <span style="display:inline-block;width:16px;height:6px;background:#2e7d32;margin:0 4px 0 12px"></span>Significant hotspot inside IDR window
-        <span style="display:inline-block;width:16px;height:6px;background:#6e6e6e;margin:0 4px 0 12px"></span>Significant hotspot outside IDR window
+        <span style="display:inline-block;width:16px;height:6px;background:#2e7d32;margin:0 4px 0 12px"></span>Significant PTM hotspot inside IDR window
+        <span style="display:inline-block;width:16px;height:6px;background:#6e6e6e;margin:0 4px 0 12px"></span>Significant PTM hotspot outside IDR window
         <span style="display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:10px solid #c62828;margin:0 6px"></span>Curated PTM site
         <span style="display:inline-block;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid #d32f2f;margin:0 4px 0 12px"></span>Variant marker (pathogenic red, benign blue, other brown)
       </div>
       <div class="muted" style="margin-top:6px;font-size:12px">
         <strong>Definitions:</strong>
-        Significant hotspots = windows passing the composition-aware permutation test with FWER q ≤ 0.10. IDR localization follows the consensus disorder threshold (≥50% disordered residues). Variant markers come from ClinVar overlap (`variant_hotspot_overlap.tsv`).
+        Significant PTM hotspots = windows passing the composition-aware permutation test with FWER q ≤ 0.10. IDR localization follows the consensus disorder threshold (≥50% disordered residues). Variant markers come from ClinVar overlap (`variant_hotspot_overlap.tsv`).
       </div>
       <div id="protein-table" style="margin-top:14px"></div>
     </section>
@@ -245,10 +245,10 @@
         });
 
       const FEATURED = [
-        { accession: 'P00533', label: 'EGFR', subtitle: 'Epidermal growth factor receptor', blurb: 'Dense hotspot clustering in disordered tails aligns with oncogenic activation signatures (Fig. 5C).' },
-        { accession: 'O75530', label: 'EED', subtitle: 'Polycomb repressive complex 2 component', blurb: 'Ultra-regulated chromatin modulator with extensive hotspot burden across IDRs.' },
+        { accession: 'P00533', label: 'EGFR', subtitle: 'Epidermal growth factor receptor', blurb: 'Dense PTM hotspot clustering in disordered tails aligns with oncogenic activation signatures (Fig. 5C).' },
+        { accession: 'O75530', label: 'EED', subtitle: 'Polycomb repressive complex 2 component', blurb: 'Ultra-regulated chromatin modulator with extensive PTM hotspot burden across IDRs.' },
         { accession: 'P37840', label: 'SNCA', subtitle: 'Alpha-synuclein', blurb: 'Neurodegenerative case study highlighting flexible-region PTM control (Figure 5B).' },
-        { accession: 'P38398', label: 'BRCA1', subtitle: 'DNA damage response coordinator', blurb: 'Disordered regulatory hubs with broad hotspot coverage supporting therapeutic prioritization.' },
+        { accession: 'P38398', label: 'BRCA1', subtitle: 'DNA damage response coordinator', blurb: 'Disordered regulatory hubs with broad PTM hotspot coverage supporting therapeutic prioritization.' },
       ];
 
       featuredGrid.innerHTML = FEATURED.map(item => `
@@ -298,7 +298,7 @@
         const rows = wins.slice(0, 200).map((w, idx) => `
           <tr data-index="${idx}">
             <td>${w.start}-${w.end}</td>
-            <td>${w.idr ? 'IDR' : 'Ordered'}</td>
+            <td>${w.idr ? 'IDR' : 'Ordered'} PTM hotspot</td>
             <td>${w.ptm_count}</td>
             <td>${w.q != null ? w.q.toExponential(2) : ''}</td>
           </tr>
@@ -707,11 +707,11 @@
           const seg = currentMeta.segments.find(s => pos.x >= s.x1 && pos.x <= s.x2 && pos.y >= s.y1 && pos.y <= s.y2);
           if (seg) {
             drawMainTrack(seg.window, null);
-            tooltip.style.display = 'block';
-            tooltip.style.left = `${pos.pageX + 12}px`;
-            tooltip.style.top = `${pos.pageY + 12}px`;
-            tooltip.innerHTML = `Residues ${seg.window.start}-${seg.window.end}<br>${seg.window.idr ? 'IDR hotspot' : 'Ordered hotspot'}<br>` +
-              `PTMs: ${seg.window.ptm_count}${seg.window.q != null ? `<br>q = ${seg.window.q.toExponential(2)}` : ''}`;
+          tooltip.style.display = 'block';
+          tooltip.style.left = `${pos.pageX + 12}px`;
+          tooltip.style.top = `${pos.pageY + 12}px`;
+          tooltip.innerHTML = `Residues ${seg.window.start}-${seg.window.end}<br>${seg.window.idr ? 'IDR PTM hotspot' : 'Ordered-region PTM hotspot'}<br>` +
+            `PTMs: ${seg.window.ptm_count}${seg.window.q != null ? `<br>q = ${seg.window.q.toExponential(2)}` : ''}`;
             handled = true;
           }
         }
