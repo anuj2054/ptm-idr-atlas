@@ -52,6 +52,7 @@
     .toggle-group label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #374151; user-select: none; }
     .toggle-group input { accent-color: #204de5; }
     .input-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+    #motif-list li { margin-bottom: 6px; font-size: 13px; color: #2d3b63; }
     input[type="text"] { padding: 8px 10px; border: 1px solid #ccd2e6; border-radius: 6px; font-size: 15px; min-width: 220px; }
     button.load-btn { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccd2e6; background: #ecf1ff; font-size: 15px; cursor: pointer; }
     button.load-btn:hover { background: #dfe7ff; }
@@ -100,6 +101,12 @@
         <li>Validation overlays (ELM motifs, IPTMNet, variant proximity) for downstream interpretation.</li>
       </ul>
       <div class="muted">For full artifact metadata see <code>site/index.json</code>.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Motif enrichment highlights</h2>
+      <div class="muted">Top ELM motifs enriched inside PTM hotspots (global analysis).</div>
+      <ul id="motif-list" class="muted" style="list-style:none; padding-left:0; margin-top:10px"></ul>
     </section>
 
     <section class="panel">
@@ -176,6 +183,7 @@
       const toggleIdrHotspots = document.getElementById('toggle-idr-hotspots');
       const toggleOrderedHotspots = document.getElementById('toggle-ordered-hotspots');
       const togglePtms = document.getElementById('toggle-ptms');
+      const motifList = document.getElementById('motif-list');
 
       const renderFlags = {
         showIdrShading: true,
@@ -221,6 +229,36 @@
         </div>
       `).join('');
 
+      if (motifList) {
+        fetch('results/atlas/v1.0/motif_overlap.tsv', { cache: 'no-store' })
+          .then(r => (r.ok ? r.text() : null))
+          .then(text => {
+            if (!text) throw new Error('motif table missing');
+            const lines = text.trim().split(/\r?\n/);
+            const header = lines.shift().split('\t');
+            const idxName = header.indexOf('motif_name');
+            const idxOR = header.indexOf('OR');
+            const idxQ = header.indexOf('q_value');
+            if (idxName === -1 || idxOR === -1 || idxQ === -1) throw new Error('motif columns missing');
+            const rows = lines.map(line => {
+              const parts = line.split('\t');
+              return {
+                name: parts[idxName],
+                or: parseFloat(parts[idxOR] || '0'),
+                q: parseFloat(parts[idxQ] || '1'),
+              };
+            }).filter(r => !Number.isNaN(r.q));
+            rows.sort((a, b) => a.q - b.q);
+            const top = rows.filter(r => r.q <= 0.1).slice(0, 5);
+            motifList.innerHTML = top.length
+              ? top.map(r => `<li><strong>${r.name}</strong> · OR ${r.or.toFixed(2)} · q=${r.q.toExponential(1)}</li>`).join('')
+              : '<li>No motifs reached significance at q ≤ 0.1.</li>';
+          })
+          .catch(() => {
+            motifList.innerHTML = '<li>Motif enrichment summary unavailable.</li>';
+          });
+      }
+
       function fmtWindows(wins) {
         if (!wins || wins.length === 0) {
           return '<div class="muted">No significant hotspot windows detected for this protein.</div>';
@@ -264,12 +302,18 @@
         const orderedCount = stats.ordered_window_count ?? (windowCount - idrCount);
         const medianPtm = stats.median_ptm_count != null ? stats.median_ptm_count : '—';
         const ptmSites = stats.ptm_site_count ?? (payload.ptm_sites ? payload.ptm_sites.length : 0);
+        const variantStats = payload.variants || null;
+        const variantLine = variantStats
+          ? `Variants: ${variantStats.total ?? 0} total • Hotspot ${variantStats.hotspot ?? 0}` +
+            `${variantStats.pathogenic_hotspot != null ? ` (pathogenic ${variantStats.pathogenic_hotspot})` : ''}`
+          : 'Variants: —';
 
         infoPanel.innerHTML = `
           <strong>${payload.accession}</strong>
           <div>${length ? `${length.toLocaleString()} aa` : 'Length unknown'} · IDR coverage ${coverage}</div>
           <div>Hotspots: ${windowCount} (IDR ${idrCount}, Ordered ${orderedCount})</div>
           <div>Median PTMs/window: ${medianPtm} · PTM sites: ${ptmSites}</div>
+          <div>${variantLine}</div>
           <div><a href="results/atlas/v1.0/proteins/${payload.accession}.json" target="_blank" rel="noopener">Download JSON</a></div>
         `;
       }
