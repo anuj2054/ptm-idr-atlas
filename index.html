@@ -69,6 +69,8 @@
     </div>
     <div id="protein-status" class="muted"></div>
     <div id="protein-view"></div>
+    <canvas id="protein-canvas" width="900" height="120" style="width:100%; max-width:900px; height:120px; border:1px solid #eee; margin-top:10px"></canvas>
+    <div class="muted" style="margin-top:4px">Legend: <span style="display:inline-block;width:10px;height:10px;background:#2e7d32;margin:0 4px 0 8px"></span>IDR window <span style="display:inline-block;width:10px;height:10px;background:#6e6e6e;margin:0 4px 0 12px"></span>Ordered window</div>
   </section>
 
   <div id="err" class="error" role="alert" style="display:none"></div>
@@ -169,6 +171,56 @@
         `;
       }
 
+      function drawTrack(wins) {
+        const canvas = document.getElementById('protein-canvas');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        if (!wins || wins.length === 0) return;
+
+        // Determine protein length proxy from max end
+        const maxEnd = Math.max(...wins.map(w => w.end || 0), 1);
+        const padL = 40, padR = 10, padT = 20, padB = 30;
+        const trackY = padT + 20, trackH = 16;
+        const innerW = Math.max(W - padL - padR, 10);
+        const xScale = x => padL + (x / maxEnd) * innerW;
+
+        // Axis
+        ctx.strokeStyle = '#ccc';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padL, trackY + trackH + 8);
+        ctx.lineTo(W - padR, trackY + trackH + 8);
+        ctx.stroke();
+        ctx.fillStyle = '#666';
+        ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+        // Ticks at 0%, 25%, 50%, 75%, 100%
+        [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+          const x = xScale(maxEnd * f);
+          ctx.fillRect(x, trackY + trackH + 8, 1, 4);
+          const label = Math.round(maxEnd * f);
+          ctx.fillText(label, x - 6, trackY + trackH + 20);
+        });
+
+        // Track baseline
+        ctx.fillStyle = '#f3f3f3';
+        ctx.fillRect(padL, trackY, innerW, trackH);
+
+        // Windows
+        wins.forEach(w => {
+          const x1 = xScale(Math.max(0, w.start - 1));
+          const x2 = xScale(Math.max(w.start, w.end));
+          const ww = Math.max(1, x2 - x1);
+          ctx.fillStyle = w.idr ? '#2e7d32' : '#6e6e6e';
+          ctx.fillRect(x1, trackY, ww, trackH);
+        });
+
+        // Title
+        ctx.fillStyle = '#222';
+        ctx.font = '14px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+        ctx.fillText('Significant hotspot windows', padL, padT);
+      }
+
       function loadProtein(acc) {
         const clean = (acc || '').trim();
         if (!clean) return;
@@ -179,10 +231,12 @@
           .then(data => {
             pstat.textContent = `Loaded ${data.accession} • ${data.windows.length} windows`;
             pview.innerHTML = fmtWindows(data.windows);
+            drawTrack(data.windows);
           })
           .catch(e => {
             pstat.textContent = '';
             pview.innerHTML = '<div class="error">Not found or no windows for ' + clean + '</div>';
+            drawTrack([]);
           });
       }
 
