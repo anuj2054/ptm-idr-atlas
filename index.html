@@ -44,6 +44,13 @@
     .card button { align-self: flex-start; }
     .preview-canvas { width: 100%; height: 68px; border: 1px solid #e4e4e4; border-radius: 4px; margin-top: 6px; }
     .panel { margin-top: 28px; }
+    .protein-toolbar { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; margin-top: 12px; }
+    .protein-info-card { padding: 12px 16px; border-radius: 10px; border: 1px solid #e0e5f7; background: #fafdff; min-width: 240px; font-size: 13px; color: #25304d; line-height: 1.4; }
+    .protein-info-card strong { display: block; font-size: 15px; margin-bottom: 4px; }
+    .protein-info-card a { color: #1f4de3; }
+    .toggle-group { display: flex; flex-wrap: wrap; gap: 12px; padding: 6px 0; }
+    .toggle-group label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #374151; user-select: none; }
+    .toggle-group input { accent-color: #204de5; }
     .input-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
     input[type="text"] { padding: 8px 10px; border: 1px solid #ccd2e6; border-radius: 6px; font-size: 15px; min-width: 220px; }
     button.load-btn { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccd2e6; background: #ecf1ff; font-size: 15px; cursor: pointer; }
@@ -51,6 +58,8 @@
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
     th, td { padding: 6px 6px; text-align: left; border-bottom: 1px solid #eceff5; }
     th { font-weight: 600; color: var(--muted); }
+    tbody tr.row-active { background: #eef3ff; }
+    tbody tr:hover { background: #f5f7ff; }
     canvas { border: 1px solid #e4e4e4; border-radius: 4px; }
     footer { margin-top: 36px; font-size: 12px; color: var(--muted); }
     .error { color: #b00020; margin-top: 12px; }
@@ -107,8 +116,25 @@
         <button id="acc-load" class="load-btn">Load protein</button>
       </div>
       <div id="protein-status" class="muted"></div>
+      <div class="protein-toolbar">
+        <div id="protein-info" class="protein-info-card">
+          <strong>Select a protein</strong>
+          <div>Hotspot summary and PTM markers will appear here.</div>
+        </div>
+        <div class="toggle-group">
+          <label><input type="checkbox" id="toggle-idr-shading" checked> IDR shading</label>
+          <label><input type="checkbox" id="toggle-idr-hotspots" checked> IDR hotspots</label>
+          <label><input type="checkbox" id="toggle-ordered-hotspots" checked> Ordered hotspots</label>
+          <label><input type="checkbox" id="toggle-ptms" checked> PTM markers</label>
+        </div>
+      </div>
       <canvas id="protein-canvas" width="920" height="180" style="width:100%; height:180px; margin-top:14px"></canvas>
-      <div class="muted" style="margin-top:6px">Legend: <span style="display:inline-block;width:16px;height:16px;background:rgba(46,125,50,0.18);margin:0 4px 0 8px;border:1px solid rgba(46,125,50,0.4)"></span>IDR span <span style="display:inline-block;width:16px;height:6px;background:#2e7d32;margin:0 4px 0 12px"></span>IDR hotspot <span style="display:inline-block;width:16px;height:6px;background:#6e6e6e;margin:0 4px 0 12px"></span>Ordered hotspot <span style="display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:10px solid #c62828;margin:0 6px"></span>Curated PTM</div>
+      <div class="muted" style="margin-top:6px">Legend:
+        <span style="display:inline-block;width:16px;height:16px;background:rgba(46,125,50,0.18);margin:0 4px 0 8px;border:1px solid rgba(46,125,50,0.4)"></span>IDR span
+        <span style="display:inline-block;width:16px;height:6px;background:#2e7d32;margin:0 4px 0 12px"></span>IDR hotspot
+        <span style="display:inline-block;width:16px;height:6px;background:#6e6e6e;margin:0 4px 0 12px"></span>Ordered hotspot
+        <span style="display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:10px solid #c62828;margin:0 6px"></span>Curated PTM
+      </div>
       <div id="protein-table" style="margin-top:14px"></div>
     </section>
 
@@ -142,13 +168,26 @@
       const input = document.getElementById('acc-input');
       const loadBtn = document.getElementById('acc-load');
       const status = document.getElementById('protein-status');
+      const infoPanel = document.getElementById('protein-info');
       const tableContainer = document.getElementById('protein-table');
       const canvas = document.getElementById('protein-canvas');
       const tooltip = document.getElementById('track-tooltip');
+      const toggleIdrShading = document.getElementById('toggle-idr-shading');
+      const toggleIdrHotspots = document.getElementById('toggle-idr-hotspots');
+      const toggleOrderedHotspots = document.getElementById('toggle-ordered-hotspots');
+      const togglePtms = document.getElementById('toggle-ptms');
+
+      const renderFlags = {
+        showIdrShading: true,
+        showIdrHotspots: true,
+        showOrderedHotspots: true,
+        showPtms: true,
+      };
 
       let currentPayload = null;
       let currentMeta = null;
       let highlightWindow = null;
+      let tableRows = [];
 
       fetch('index.json', { cache: 'no-store' })
         .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -166,30 +205,10 @@
         });
 
       const FEATURED = [
-        {
-          accession: 'P00533',
-          label: 'EGFR',
-          subtitle: 'Epidermal growth factor receptor',
-          blurb: 'Dense hotspot clustering in disordered tails aligns with oncogenic activation signatures (Fig. 5C).'
-        },
-        {
-          accession: 'O75530',
-          label: 'EED',
-          subtitle: 'Polycomb repressive complex 2 component',
-          blurb: 'Ultra-regulated chromatin modulator with extensive hotspot burden across IDRs.'
-        },
-        {
-          accession: 'P37840',
-          label: 'SNCA',
-          subtitle: 'Alpha-synuclein',
-          blurb: 'Neurodegenerative case study highlighting flexible-region PTM control (Figure 5B).'
-        },
-        {
-          accession: 'P38398',
-          label: 'BRCA1',
-          subtitle: 'DNA damage response coordinator',
-          blurb: 'Disordered regulatory hubs with broad hotspot coverage supporting therapeutic prioritization.'
-        }
+        { accession: 'P00533', label: 'EGFR', subtitle: 'Epidermal growth factor receptor', blurb: 'Dense hotspot clustering in disordered tails aligns with oncogenic activation signatures (Fig. 5C).' },
+        { accession: 'O75530', label: 'EED', subtitle: 'Polycomb repressive complex 2 component', blurb: 'Ultra-regulated chromatin modulator with extensive hotspot burden across IDRs.' },
+        { accession: 'P37840', label: 'SNCA', subtitle: 'Alpha-synuclein', blurb: 'Neurodegenerative case study highlighting flexible-region PTM control (Figure 5B).' },
+        { accession: 'P38398', label: 'BRCA1', subtitle: 'DNA damage response coordinator', blurb: 'Disordered regulatory hubs with broad hotspot coverage supporting therapeutic prioritization.' },
       ];
 
       featuredGrid.innerHTML = FEATURED.map(item => `
@@ -206,8 +225,8 @@
         if (!wins || wins.length === 0) {
           return '<div class="muted">No significant hotspot windows detected for this protein.</div>';
         }
-        const rows = wins.slice(0, 200).map(w => `
-          <tr>
+        const rows = wins.slice(0, 200).map((w, idx) => `
+          <tr data-index="${idx}">
             <td>${w.start}-${w.end}</td>
             <td>${w.idr ? 'IDR' : 'Ordered'}</td>
             <td>${w.ptm_count}</td>
@@ -229,6 +248,39 @@
         `;
       }
 
+      function updateInfoPanel(payload) {
+        if (!payload) {
+          infoPanel.innerHTML = '<strong>Select a protein</strong><div>Hotspot summary and PTM markers will appear here.</div>';
+          return;
+        }
+        const stats = payload.stats || {};
+        const length = payload.length || null;
+        const idrLength = payload.idr_length ?? (
+          payload.idr_segments ? payload.idr_segments.reduce((sum, seg) => sum + Math.max(0, (seg.end || seg.start) - seg.start + 1), 0) : null
+        );
+        const coverage = length ? `${(((idrLength || 0) / length) * 100).toFixed(1)}%` : '—';
+        const windowCount = stats.window_count ?? (payload.windows ? payload.windows.length : 0);
+        const idrCount = stats.idr_window_count ?? (payload.windows ? payload.windows.filter(w => w.idr).length : 0);
+        const orderedCount = stats.ordered_window_count ?? (windowCount - idrCount);
+        const medianPtm = stats.median_ptm_count != null ? stats.median_ptm_count : '—';
+        const ptmSites = stats.ptm_site_count ?? (payload.ptm_sites ? payload.ptm_sites.length : 0);
+
+        infoPanel.innerHTML = `
+          <strong>${payload.accession}</strong>
+          <div>${length ? `${length.toLocaleString()} aa` : 'Length unknown'} · IDR coverage ${coverage}</div>
+          <div>Hotspots: ${windowCount} (IDR ${idrCount}, Ordered ${orderedCount})</div>
+          <div>Median PTMs/window: ${medianPtm} · PTM sites: ${ptmSites}</div>
+          <div><a href="results/atlas/v1.0/proteins/${payload.accession}.json" target="_blank" rel="noopener">Download JSON</a></div>
+        `;
+      }
+
+      function setRowHighlight(index) {
+        tableRows.forEach(row => {
+          const isActive = index != null && Number(row.dataset.index) === index;
+          row.classList.toggle('row-active', isActive);
+        });
+      }
+
       function renderTrack(payload, canvasEl, options = {}) {
         const ctx = canvasEl.getContext('2d');
         ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
@@ -238,6 +290,11 @@
         const idrSegs = payload.idr_segments || [];
         const ptmSites = payload.ptm_sites || [];
         const declaredLength = payload.length || 0;
+
+        const showIdrShading = options.showIdrShading !== false;
+        const showIdrHotspots = options.showIdrHotspots !== false;
+        const showOrderedHotspots = options.showOrderedHotspots !== false;
+        const showPtms = options.showPtms !== false;
 
         const maxExtent = Math.max(
           declaredLength,
@@ -261,7 +318,7 @@
         ctx.fillStyle = '#f1f3f7';
         ctx.fillRect(padL, trackY, innerW, trackH);
 
-        if (idrSegs.length) {
+        if (showIdrShading && idrSegs.length) {
           ctx.fillStyle = 'rgba(46, 125, 50, 0.18)';
           idrSegs.forEach(seg => {
             const x1 = xScale(Math.max(0, (seg.start || 1) - 1));
@@ -271,12 +328,16 @@
         }
 
         wins.forEach(w => {
+          const drawHotspot = (w.idr && showIdrHotspots) || (!w.idr && showOrderedHotspots);
+          if (!drawHotspot) return;
+
           const x1 = xScale(Math.max(0, w.start - 1));
           const x2 = xScale(Math.max(w.start, w.end));
           const width = Math.max(1, x2 - x1);
           const isHighlight = options.highlightWindow && options.highlightWindow === w;
           ctx.fillStyle = isHighlight ? '#1976d2' : (w.idr ? '#2e7d32' : '#6e6e6e');
           ctx.fillRect(x1, trackY + (compact ? 3 : 5), width, trackH - (compact ? 6 : 10));
+
           if (options.captureSegments && !compact) {
             segments.push({
               x1,
@@ -290,15 +351,18 @@
 
         if (options.highlightWindow && !compact) {
           const w = options.highlightWindow;
-          const x1 = xScale(Math.max(0, w.start - 1));
-          const x2 = xScale(Math.max(w.start, w.end));
-          const width = Math.max(1, x2 - x1);
-          ctx.strokeStyle = '#1976d2';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x1, trackY + 3, width, trackH - 6);
+          const visible = (w.idr && showIdrHotspots) || (!w.idr && showOrderedHotspots);
+          if (visible) {
+            const x1 = xScale(Math.max(0, w.start - 1));
+            const x2 = xScale(Math.max(w.start, w.end));
+            const width = Math.max(1, x2 - x1);
+            ctx.strokeStyle = '#1976d2';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x1, trackY + 3, width, trackH - 6);
+          }
         }
 
-        if (ptmSites.length) {
+        if (showPtms && ptmSites.length) {
           ctx.strokeStyle = '#c62828';
           ctx.lineWidth = compact ? 1.2 : 2;
           ptmSites.forEach(site => {
@@ -333,15 +397,53 @@
         return null;
       }
 
-      function drawMainTrack(highlightSeg) {
+      function drawMainTrack(targetWindow) {
         if (!currentPayload) {
           renderTrack(null, canvas);
           currentMeta = null;
+          setRowHighlight(null);
           return;
         }
+        const highlight = targetWindow || null;
+        highlightWindow = highlight;
         currentMeta = renderTrack(currentPayload, canvas, {
           captureSegments: true,
-          highlightWindow: highlightSeg ? highlightSeg.window : null,
+          highlightWindow: highlight,
+          showIdrShading: renderFlags.showIdrShading,
+          showIdrHotspots: renderFlags.showIdrHotspots,
+          showOrderedHotspots: renderFlags.showOrderedHotspots,
+          showPtms: renderFlags.showPtms,
+        });
+        setRowHighlight(highlight ? highlight.__index : null);
+      }
+
+      function applyRenderFlags() {
+        if (highlightWindow) {
+          const visible = (highlightWindow.idr && renderFlags.showIdrHotspots) || (!highlightWindow.idr && renderFlags.showOrderedHotspots);
+          if (!visible) {
+            highlightWindow = null;
+          }
+        }
+        drawMainTrack(highlightWindow);
+      }
+
+      function attachRowListeners() {
+        tableRows = Array.from(tableContainer.querySelectorAll('tbody tr'));
+        tableRows.forEach(row => {
+          const idx = Number(row.dataset.index);
+          row.addEventListener('mouseenter', () => {
+            tooltip.style.display = 'none';
+            if (!currentPayload || Number.isNaN(idx)) return;
+            const w = currentPayload.windows[idx];
+            if (!w) return;
+            highlightWindow = w;
+            drawMainTrack(w);
+          });
+          row.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+            highlightWindow = null;
+            drawMainTrack(null);
+          });
         });
       }
 
@@ -351,29 +453,52 @@
         status.textContent = `Loading ${clean}…`;
         tableContainer.innerHTML = '';
         tooltip.style.display = 'none';
+        updateInfoPanel(null);
 
         fetch(`results/atlas/v1.0/proteins/${encodeURIComponent(clean)}.json`, { cache: 'no-store' })
           .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
           .then(data => {
+            data.windows.forEach((w, idx) => { w.__index = idx; });
             currentPayload = data;
             highlightWindow = null;
-            drawMainTrack(null);
-            status.textContent = `Loaded ${data.accession} • ${data.windows.length} significant windows`;
+            const length = data.length || null;
+            const idrLength = data.idr_length ?? (
+              data.idr_segments ? data.idr_segments.reduce((sum, seg) => sum + Math.max(0, (seg.end || seg.start) - seg.start + 1), 0) : null
+            );
+            const coverage = length ? `${(((idrLength || 0) / length) * 100).toFixed(1)}%` : '—';
+            status.textContent = `Loaded ${data.accession} • ${data.windows.length} hotspots · IDR coverage ${coverage}`;
+            updateInfoPanel(data);
             tableContainer.innerHTML = fmtWindows(data.windows);
+            attachRowListeners();
+            if (data.windows.length > 200) {
+              const note = document.createElement('div');
+              note.className = 'muted';
+              note.textContent = `Showing first 200 windows of ${data.windows.length}.`;
+              tableContainer.appendChild(note);
+            }
             if (data.ptm_sites && data.ptm_sites.length) {
               const hint = document.createElement('div');
               hint.className = 'muted';
               hint.textContent = `PTM markers: ${data.ptm_sites.length} curated sites`;
               tableContainer.appendChild(hint);
             }
+            drawMainTrack(null);
           })
-          .catch(e => {
+          .catch(() => {
             currentPayload = null;
-            currentMeta = null;
+            highlightWindow = null;
             drawMainTrack(null);
             status.textContent = '';
+            updateInfoPanel(null);
             tableContainer.innerHTML = `<div class="error">No hotspot data for ${clean} (or accession not in this release).</div>`;
           });
+      }
+
+      function renderPreview(acc, canvasEl) {
+        fetch(`results/atlas/v1.0/proteins/${encodeURIComponent(acc)}.json`, { cache: 'no-store' })
+          .then(r => (r.ok ? r.json() : null))
+          .then(data => { if (data) renderTrack(data, canvasEl, { compact: true }); })
+          .catch(() => {});
       }
 
       function canvasCoords(event) {
@@ -388,6 +513,39 @@
         };
       }
 
+      featuredGrid.querySelectorAll('.preview-canvas').forEach(el => {
+        const acc = el.getAttribute('data-acc');
+        renderPreview(acc, el);
+      });
+
+      featuredGrid.querySelectorAll('button[data-acc]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const acc = btn.getAttribute('data-acc');
+          input.value = acc;
+          loadProtein(acc);
+        });
+      });
+
+      loadBtn.addEventListener('click', () => loadProtein(input.value));
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') loadProtein(input.value); });
+
+      toggleIdrShading.addEventListener('change', () => {
+        renderFlags.showIdrShading = toggleIdrShading.checked;
+        applyRenderFlags();
+      });
+      toggleIdrHotspots.addEventListener('change', () => {
+        renderFlags.showIdrHotspots = toggleIdrHotspots.checked;
+        applyRenderFlags();
+      });
+      toggleOrderedHotspots.addEventListener('change', () => {
+        renderFlags.showOrderedHotspots = toggleOrderedHotspots.checked;
+        applyRenderFlags();
+      });
+      togglePtms.addEventListener('change', () => {
+        renderFlags.showPtms = togglePtms.checked;
+        applyRenderFlags();
+      });
+
       canvas.addEventListener('mousemove', evt => {
         if (!currentMeta || !currentMeta.segments) return;
         const pos = canvasCoords(evt);
@@ -395,13 +553,12 @@
         if (seg) {
           if (highlightWindow !== seg.window) {
             highlightWindow = seg.window;
-            drawMainTrack(seg);
+            drawMainTrack(seg.window);
           }
           tooltip.style.display = 'block';
           tooltip.style.left = `${pos.pageX + 12}px`;
           tooltip.style.top = `${pos.pageY + 12}px`;
-          tooltip.innerHTML = `Residues ${seg.window.start}-${seg.window.end}<br>` +
-            `${seg.window.idr ? 'IDR hotspot' : 'Ordered hotspot'}<br>` +
+          tooltip.innerHTML = `Residues ${seg.window.start}-${seg.window.end}<br>${seg.window.idr ? 'IDR hotspot' : 'Ordered hotspot'}<br>` +
             `PTMs: ${seg.window.ptm_count}${seg.window.q != null ? `<br>q = ${seg.window.q.toExponential(2)}` : ''}`;
         } else {
           if (highlightWindow) {
@@ -413,34 +570,11 @@
       });
 
       canvas.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
         if (highlightWindow) {
           highlightWindow = null;
           drawMainTrack(null);
         }
-        tooltip.style.display = 'none';
-      });
-
-      loadBtn.addEventListener('click', () => loadProtein(input.value));
-      input.addEventListener('keydown', e => { if (e.key === 'Enter') loadProtein(input.value); });
-
-      document.querySelectorAll('button[data-acc]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const acc = btn.getAttribute('data-acc');
-          input.value = acc;
-          loadProtein(acc);
-        });
-      });
-
-      featuredGrid.querySelectorAll('.preview-canvas').forEach(canvasEl => {
-        const acc = canvasEl.getAttribute('data-acc');
-        fetch(`results/atlas/v1.0/proteins/${encodeURIComponent(acc)}.json`, { cache: 'no-store' })
-          .then(r => (r.ok ? r.json() : null))
-          .then(data => {
-            if (data) {
-              renderTrack(data, canvasEl, { compact: true });
-            }
-          })
-          .catch(() => {});
       });
 
       loadProtein('P00533');
