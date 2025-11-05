@@ -5,157 +5,201 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PTM-IDR Atlas</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 20px; color: #222; }
-    header { margin-bottom: 20px; }
-    h1 { margin: 0 0 6px; font-size: 22px; }
-    .meta { color: #555; font-size: 14px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { border-bottom: 1px solid #eee; padding: 8px 6px; text-align: left; }
-    th { background: #fafafa; font-weight: 600; font-size: 14px; }
-    .muted { color: #666; font-size: 12px; }
-    .pill { display: inline-block; padding: 2px 6px; border-radius: 10px; background: #eef; color: #225; font-size: 12px; }
-    a { color: #0b5fff; text-decoration: none; }
+    :root {
+      color-scheme: light;
+      --bg: #ffffff;
+      --fg: #1f1f1f;
+      --muted: #616161;
+      --accent: #2255cc;
+      --card-bg: #f8f9ff;
+      --card-border: #dee3ff;
+    }
+    body {
+      margin: 0;
+      padding: 28px 20px 40px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    main { max-width: 960px; margin: 0 auto; }
+    header { margin-bottom: 28px; }
+    h1 { margin: 0 0 10px; font-size: 28px; font-weight: 650; }
+    h2 { font-size: 20px; margin: 0 0 10px; font-weight: 600; }
+    p { margin: 0 0 12px; }
+    a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    footer { margin-top: 24px; font-size: 12px; color: #666; }
-    .error { color: #b00020; }
-    .grid { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 12px; margin: 18px 0 26px; }
+    .summary div { padding: 12px 14px; border: 1px solid #eceff7; border-radius: 10px; background: #fafbff; }
+    .summary strong { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 4px; }
+    .summary span { font-size: 16px; font-weight: 600; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 999px; border: 1px solid var(--card-border);
+      background: #eef1ff; color: #233375; font-size: 12px; cursor: pointer;
+    }
+    .pill:hover { background: #dfe5ff; }
+    .info-card { padding: 18px; border-radius: 12px; border: 1px solid #ebeffa; background: var(--card-bg); margin: 16px 0 28px; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 14px; margin-top: 14px; }
+    .card { padding: 16px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card-bg); display: flex; flex-direction: column; gap: 10px; }
+    .card-title { font-size: 18px; font-weight: 600; }
+    .card button { align-self: flex-start; }
+    .panel { margin-top: 28px; }
+    .input-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+    input[type="text"] {
+      padding: 8px 10px; border: 1px solid #ccd2e6; border-radius: 6px;
+      font-size: 15px; min-width: 220px;
+    }
+    button.load-btn {
+      padding: 8px 14px; border-radius: 6px;
+      border: 1px solid #ccd2e6; background: #ecf1ff;
+      font-size: 15px; cursor: pointer;
+    }
+    button.load-btn:hover { background: #dfe7ff; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { padding: 6px 6px; text-align: left; border-bottom: 1px solid #eceff5; }
+    th { font-weight: 600; color: var(--muted); }
+    canvas { border: 1px solid #e4e4e4; border-radius: 4px; }
+    footer { margin-top: 36px; font-size: 12px; color: var(--muted); }
+    .error { color: #b00020; margin-top: 12px; }
+    @media (max-width: 600px) {
+      body { padding: 24px 16px; }
+      canvas { height: 100px; }
+    }
   </style>
-  <noscript>
-    <style> #app { display:none } </style>
-  </noscript>
   <meta name="robots" content="noindex">
   <meta http-equiv="cache-control" content="no-cache">
   <meta http-equiv="expires" content="0">
   <meta http-equiv="pragma" content="no-cache">
   <link rel="icon" href="data:,">
-  <!-- Minimal static browser for index.json -->
-  <!-- If JavaScript is disabled, you can open index.json directly. -->
 </head>
 <body>
-  <header class="grid">
-    <div>
+  <main>
+    <header>
       <h1>PTM-IDR Atlas</h1>
-      <div class="meta" id="meta">Loading metadata…</div>
+      <div class="hero-meta">
+        <div id="meta" class="muted">Loading metadata…</div>
+        <a href="index.json" class="pill" title="Programmatic catalog">index.json</a>
+      </div>
+      <p>The atlas delivers statistically significant PTM hotspots within intrinsically disordered regions across the human proteome. Explore curated examples, inspect any UniProt accession, or integrate the data into downstream analyses.</p>
+    </header>
+
+    <div class="summary">
+      <div><strong>Version</strong><span id="summary-version">—</span></div>
+      <div><strong>Generated</strong><span id="summary-generated">—</span></div>
+      <div><strong>Core Tables</strong><span id="summary-artifacts">—</span></div>
     </div>
-    <div>
-      <a href="index.json" class="pill" title="View raw JSON index">index.json</a>
-    </div>
-  </header>
 
-  <div id="app">
-    <table id="artifacts-table" aria-label="Artifacts">
-      <thead>
-        <tr>
-          <th>Filename</th>
-          <th>Description</th>
-          <th>Format</th>
-          <th>Size</th>
-          <th>Download</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div id="empty" class="muted" style="display:none">No artifacts found.</div>
-  </div>
+    <section class="info-card">
+      <h2>What’s inside</h2>
+      <ul>
+        <li>Hotspot windows annotated with IDR localization and significance testing.</li>
+        <li>Per-protein summaries capturing hotspot counts and regulatory burden.</li>
+        <li>Validation overlays (ELM motifs, IPTMNet, variant proximity) for downstream interpretation.</li>
+      </ul>
+      <div class="muted">For full artifact metadata see <code>site/index.json</code>.</div>
+    </section>
 
-  <hr style="margin:24px 0; border:none; border-top:1px solid #eee">
+    <section class="panel">
+      <h2>Featured case studies</h2>
+      <div class="muted">Quick links to proteins highlighted in the manuscript figures.</div>
+      <div class="card-grid" id="featured-grid"></div>
+    </section>
 
-  <section>
-    <h2 style="margin:0 0 8px; font-size:18px">Protein Browser</h2>
-    <div class="muted">Enter a UniProt accession to load significant hotspot windows.</div>
-    <div style="margin:10px 0; display:flex; gap:8px">
-      <input id="acc-input" type="text" placeholder="e.g., O14920" style="padding:6px 8px; font-size:14px; width:220px">
-      <button id="acc-load" style="padding:6px 10px; font-size:14px">Load</button>
-    </div>
-    <div id="protein-status" class="muted"></div>
-    <div id="protein-view"></div>
-    <canvas id="protein-canvas" width="900" height="120" style="width:100%; max-width:900px; height:120px; border:1px solid #eee; margin-top:10px"></canvas>
-    <div class="muted" style="margin-top:4px">Legend: <span style="display:inline-block;width:10px;height:10px;background:#2e7d32;margin:0 4px 0 8px"></span>IDR window <span style="display:inline-block;width:10px;height:10px;background:#6e6e6e;margin:0 4px 0 12px"></span>Ordered window</div>
-  </section>
+    <section class="panel">
+      <h2>Interactive protein browser</h2>
+      <div class="muted">Inspect significant hotspot windows for any UniProt accession.</div>
+      <div class="input-row">
+        <input id="acc-input" type="text" placeholder="Enter UniProt accession (e.g., P00533)">
+        <button id="acc-load" class="load-btn">Load protein</button>
+      </div>
+      <div id="protein-status" class="muted"></div>
+      <div id="protein-view"></div>
+      <canvas id="protein-canvas" width="920" height="140" style="width:100%; height:140px; margin-top:12px"></canvas>
+      <div class="muted" style="margin-top:6px">Legend: <span style="display:inline-block;width:12px;height:12px;background:#2e7d32;margin:0 4px 0 8px"></span>IDR hotspot <span style="display:inline-block;width:12px;height:12px;background:#6e6e6e;margin:0 4px 0 12px"></span>Ordered hotspot</div>
+    </section>
 
-  <section style="margin-top:24px">
-    <h2 style="margin:0 0 8px; font-size:18px">Featured Examples</h2>
-    <div class="muted">Curated proteins from the manuscript case studies and figures.</div>
-    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px">
-      <button class="pill" data-acc="P00533" title="EGFR — epidermal growth factor receptor">EGFR (P00533)</button>
-      <button class="pill" data-acc="O75530" title="EED — ultra-regulation case">EED (O75530)</button>
-      <button class="pill" data-acc="P37840" title="SNCA — alpha-synuclein">SNCA (P37840)</button>
-    </div>
-  </section>
+    <section class="panel">
+      <h2>How to use this atlas</h2>
+      <ol style="margin: 6px 0 0 20px;">
+        <li>Use the interactive browser to visualize hotspots and their IDR context.</li>
+        <li>Compare against featured case studies to benchmark regulatory archetypes.</li>
+        <li>Integrate the tables listed in <code>index.json</code> into pipelines or notebooks.</li>
+      </ol>
+      <p style="margin-top:12px" class="muted">Need a full data dump? Clone the public repository <code>anuj2054/ptm-idr-atlas</code> or download individual tables via URLs in <code>index.json</code>.</p>
+    </section>
 
-  <div id="err" class="error" role="alert" style="display:none"></div>
+    <div id="err" class="error" style="display:none"></div>
 
-  <footer>
-    <span class="muted">Served from GitHub Pages. Uses site/index.json generated by the atlas tools.</span>
-  </footer>
+    <footer>
+      PTM-IDR Atlas • Served via GitHub Pages • Browse index: <code>site/index.json</code>
+    </footer>
+  </main>
 
   <script>
     (function() {
       const meta = document.getElementById('meta');
-      const tbody = document.getElementById('tbody');
-      const empty = document.getElementById('empty');
+      const summaryVersion = document.getElementById('summary-version');
+      const summaryGenerated = document.getElementById('summary-generated');
+      const summaryArtifacts = document.getElementById('summary-artifacts');
       const err = document.getElementById('err');
+      const featuredGrid = document.getElementById('featured-grid');
 
       fetch('index.json', { cache: 'no-store' })
-        .then(r => {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.json();
-        })
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(data => {
-          meta.textContent = `${data.project} • v${data.version} • ${new Date(data.generated_at).toLocaleString()}`;
-
-          const rows = (data.artifacts || []).map(a => {
-            const tr = document.createElement('tr');
-
-            const tdName = document.createElement('td');
-            tdName.textContent = a.filename;
-            tr.appendChild(tdName);
-
-            const tdDesc = document.createElement('td');
-            tdDesc.textContent = a.description || '';
-            tr.appendChild(tdDesc);
-
-            const tdFmt = document.createElement('td');
-            tdFmt.textContent = (a.format || '').toUpperCase();
-            tr.appendChild(tdFmt);
-
-            const tdSize = document.createElement('td');
-            const size = (typeof a.size_mb === 'number') ? `${a.size_mb.toFixed(2)} MB` : `${a.size_bytes} bytes`;
-            tdSize.textContent = size;
-            tr.appendChild(tdSize);
-
-            const tdLink = document.createElement('td');
-            const link = document.createElement('a');
-            link.href = a.download_url;
-            link.textContent = 'Download';
-            link.rel = 'noopener';
-            link.target = '_blank';
-            tdLink.appendChild(link);
-            tr.appendChild(tdLink);
-
-            return tr;
-          });
-
-          if (rows.length === 0) {
-            empty.style.display = 'block';
-          } else {
-            rows.forEach(tr => tbody.appendChild(tr));
-          }
+          const generated = new Date(data.generated_at);
+          meta.textContent = `${data.project} • v${data.version}`;
+          summaryVersion.textContent = `v${data.version}`;
+          summaryGenerated.textContent = generated.toLocaleString();
+          summaryArtifacts.textContent = `${(data.artifacts || []).length} datasets`;
         })
         .catch(e => {
-          meta.textContent = 'Failed to load index metadata';
+          meta.textContent = 'PTM-IDR Atlas';
           err.style.display = 'block';
-          err.textContent = 'Error loading index.json: ' + e.message + '. You can open index.json directly using the link above.';
+          err.textContent = 'Error loading index metadata: ' + e.message + '. You can open index.json directly using the link above.';
         });
 
-      // Simple protein browser
+      const FEATURED = [
+        {
+          accession: 'P00533',
+          label: 'EGFR',
+          subtitle: 'Epidermal growth factor receptor',
+          blurb: 'Dense hotspot clustering in disordered tails aligns with oncogenic activation signatures (Fig. 5C).'
+        },
+        {
+          accession: 'O75530',
+          label: 'EED',
+          subtitle: 'Polycomb repressive complex 2 component',
+          blurb: 'Ultra-regulated chromatin modulator with extensive hotspot burden across IDRs.'
+        },
+        {
+          accession: 'P37840',
+          label: 'SNCA',
+          subtitle: 'Alpha-synuclein',
+          blurb: 'Neurodegenerative case study highlighting flexible-region PTM control (Figure 5B).'
+        }
+      ];
+
+      featuredGrid.innerHTML = FEATURED.map(item => `
+        <div class="card">
+          <div class="card-title">${item.label} <span class="muted">(${item.accession})</span></div>
+          <div class="muted">${item.subtitle}</div>
+          <p>${item.blurb}</p>
+          <button class="pill" data-acc="${item.accession}">Open in browser</button>
+        </div>
+      `).join('');
+
       const input = document.getElementById('acc-input');
       const loadBtn = document.getElementById('acc-load');
       const pstat = document.getElementById('protein-status');
       const pview = document.getElementById('protein-view');
+      const canvas = document.getElementById('protein-canvas');
 
       function fmtWindows(wins) {
-        if (!wins || wins.length === 0) return '<div class="muted">No significant windows found.</div>';
+        if (!wins || wins.length === 0) return '<div class="muted">No significant hotspot windows detected for this protein.</div>';
         const rows = wins.slice(0, 200).map(w => `
           <tr>
             <td>${w.start}-${w.end}</td>
@@ -165,96 +209,80 @@
           </tr>
         `).join('');
         return `
-          <table style="width:100%; border-collapse:collapse; margin-top:8px">
+          <table>
             <thead>
               <tr>
-                <th style="text-align:left; border-bottom:1px solid #eee; padding:6px 4px">Window</th>
-                <th style="text-align:left; border-bottom:1px solid #eee; padding:6px 4px">Region</th>
-                <th style="text-align:left; border-bottom:1px solid #eee; padding:6px 4px">PTMs</th>
-                <th style="text-align:left; border-bottom:1px solid #eee; padding:6px 4px">q</th>
+                <th>Window</th>
+                <th>Region</th>
+                <th>PTMs</th>
+                <th>q-value</th>
               </tr>
             </thead>
-            <tbody>
-              ${rows}
-            </tbody>
+            <tbody>${rows}</tbody>
           </table>
         `;
       }
 
       function drawTrack(wins) {
-        const canvas = document.getElementById('protein-canvas');
         const ctx = canvas.getContext('2d');
-        const W = canvas.width, H = canvas.height;
-        ctx.clearRect(0, 0, W, H);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (!wins || wins.length === 0) return;
 
-        // Determine protein length proxy from max end
         const maxEnd = Math.max(...wins.map(w => w.end || 0), 1);
-        const padL = 40, padR = 10, padT = 20, padB = 30;
-        const trackY = padT + 20, trackH = 16;
-        const innerW = Math.max(W - padL - padR, 10);
+        const padL = 50, padR = 20, padT = 28;
+        const trackY = padT, trackH = 26;
+        const innerW = Math.max(canvas.width - padL - padR, 20);
         const xScale = x => padL + (x / maxEnd) * innerW;
 
-        // Axis
-        ctx.strokeStyle = '#ccc';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(padL, trackY + trackH + 8);
-        ctx.lineTo(W - padR, trackY + trackH + 8);
-        ctx.stroke();
-        ctx.fillStyle = '#666';
-        ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-        // Ticks at 0%, 25%, 50%, 75%, 100%
-        [0, 0.25, 0.5, 0.75, 1].forEach(f => {
-          const x = xScale(maxEnd * f);
-          ctx.fillRect(x, trackY + trackH + 8, 1, 4);
-          const label = Math.round(maxEnd * f);
-          ctx.fillText(label, x - 6, trackY + trackH + 20);
-        });
-
-        // Track baseline
-        ctx.fillStyle = '#f3f3f3';
+        ctx.fillStyle = '#f1f3f7';
         ctx.fillRect(padL, trackY, innerW, trackH);
 
-        // Windows
         wins.forEach(w => {
           const x1 = xScale(Math.max(0, w.start - 1));
           const x2 = xScale(Math.max(w.start, w.end));
-          const ww = Math.max(1, x2 - x1);
+          const width = Math.max(1, x2 - x1);
           ctx.fillStyle = w.idr ? '#2e7d32' : '#6e6e6e';
-          ctx.fillRect(x1, trackY, ww, trackH);
+          ctx.fillRect(x1, trackY, width, trackH);
         });
 
-        // Title
-        ctx.fillStyle = '#222';
-        ctx.font = '14px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-        ctx.fillText('Significant hotspot windows', padL, padT);
+        ctx.strokeStyle = '#d1d6e6';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(padL, trackY, innerW, trackH);
+
+        ctx.fillStyle = '#454545';
+        ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+        const ticks = [0, 0.25, 0.5, 0.75, 1];
+        ticks.forEach(f => {
+          const x = xScale(maxEnd * f);
+          ctx.fillRect(x, trackY + trackH + 2, 1, 6);
+          const label = Math.round(maxEnd * f);
+          ctx.fillText(label.toString(), x - 8, trackY + trackH + 18);
+        });
+        ctx.fillText('Residue position', padL, trackY - 10);
       }
 
       function loadProtein(acc) {
         const clean = (acc || '').trim();
         if (!clean) return;
-        pstat.textContent = 'Loading ' + clean + '…';
+        pstat.textContent = `Loading ${clean}…`;
         pview.innerHTML = '';
-        fetch('results/atlas/v1.0/proteins/' + encodeURIComponent(clean) + '.json', { cache: 'no-store' })
+        fetch(`results/atlas/v1.0/proteins/${encodeURIComponent(clean)}.json`, { cache: 'no-store' })
           .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
           .then(data => {
-            pstat.textContent = `Loaded ${data.accession} • ${data.windows.length} windows`;
+            pstat.textContent = `Loaded ${data.accession} • ${data.windows.length} significant windows`;
             pview.innerHTML = fmtWindows(data.windows);
             drawTrack(data.windows);
           })
           .catch(e => {
             pstat.textContent = '';
-            pview.innerHTML = '<div class="error">Not found or no windows for ' + clean + '</div>';
+            pview.innerHTML = `<div class="error">No hotspot data for ${clean} (or accession not in this release).</div>`;
             drawTrack([]);
           });
       }
 
       loadBtn.addEventListener('click', () => loadProtein(input.value));
-      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadProtein(input.value); });
-
-      // Wire featured example buttons
-      document.querySelectorAll('button.pill[data-acc]').forEach(btn => {
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') loadProtein(input.value); });
+      document.querySelectorAll('button[data-acc]').forEach(btn => {
         btn.addEventListener('click', () => {
           const acc = btn.getAttribute('data-acc');
           input.value = acc;
@@ -262,12 +290,9 @@
         });
       });
 
-      // Preload a featured example on first load
       loadProtein('P00533');
     })();
   </script>
-  <noscript>
-    <p class="error">JavaScript is disabled. Open <a href="index.json">index.json</a> to view artifacts.</p>
-  </noscript>
 </body>
-<\/html>
+</html>
+
