@@ -58,6 +58,19 @@
     <div id="empty" class="muted" style="display:none">No artifacts found.</div>
   </div>
 
+  <hr style="margin:24px 0; border:none; border-top:1px solid #eee">
+
+  <section>
+    <h2 style="margin:0 0 8px; font-size:18px">Protein Browser</h2>
+    <div class="muted">Enter a UniProt accession to load significant hotspot windows.</div>
+    <div style="margin:10px 0; display:flex; gap:8px">
+      <input id="acc-input" type="text" placeholder="e.g., O14920" style="padding:6px 8px; font-size:14px; width:220px">
+      <button id="acc-load" style="padding:6px 10px; font-size:14px">Load</button>
+    </div>
+    <div id="protein-status" class="muted"></div>
+    <div id="protein-view"></div>
+  </section>
+
   <div id="err" class="error" role="alert" style="display:none"></div>
 
   <footer>
@@ -122,6 +135,59 @@
           err.style.display = 'block';
           err.textContent = 'Error loading index.json: ' + e.message + '. You can open index.json directly using the link above.';
         });
+
+      // Simple protein browser
+      const input = document.getElementById('acc-input');
+      const loadBtn = document.getElementById('acc-load');
+      const pstat = document.getElementById('protein-status');
+      const pview = document.getElementById('protein-view');
+
+      function fmtWindows(wins) {
+        if (!wins || wins.length === 0) return '<div class="muted">No significant windows found.</div>';
+        const rows = wins.slice(0, 200).map(w => `
+          <tr>
+            <td>${w.start}-${w.end}</td>
+            <td>${w.idr ? 'IDR' : 'ORD'}</td>
+            <td>${w.ptm_count}</td>
+            <td>${w.q != null ? w.q.toExponential(2) : ''}</td>
+          </tr>
+        `).join('');
+        return `
+          <table style="width:100%; border-collapse:collapse; margin-top:8px">
+            <thead>
+              <tr>
+                <th style="text-align:left; border-bottom:1px solid #eee; padding:6px 4px">Window</th>
+                <th style="text-align:left; border-bottom:1px solid #eee; padding:6px 4px">Region</th>
+                <th style="text-align:left; border-bottom:1px solid #eee; padding:6px 4px">PTMs</th>
+                <th style="text-align:left; border-bottom:1px solid #eee; padding:6px 4px">q</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        `;
+      }
+
+      function loadProtein(acc) {
+        const clean = (acc || '').trim();
+        if (!clean) return;
+        pstat.textContent = 'Loading ' + clean + '…';
+        pview.innerHTML = '';
+        fetch('results/atlas/v1.0/proteins/' + encodeURIComponent(clean) + '.json', { cache: 'no-store' })
+          .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(data => {
+            pstat.textContent = `Loaded ${data.accession} • ${data.windows.length} windows`;
+            pview.innerHTML = fmtWindows(data.windows);
+          })
+          .catch(e => {
+            pstat.textContent = '';
+            pview.innerHTML = '<div class="error">Not found or no windows for ' + clean + '</div>';
+          });
+      }
+
+      loadBtn.addEventListener('click', () => loadProtein(input.value));
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadProtein(input.value); });
     })();
   </script>
   <noscript>
@@ -129,4 +195,3 @@
   </noscript>
 </body>
 <\/html>
-
