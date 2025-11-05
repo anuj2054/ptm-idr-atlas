@@ -145,8 +145,11 @@
         <span style="display:inline-block;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid #d32f2f;margin:0 4px 0 12px"></span>Variant marker (pathogenic red, benign blue, other brown)
       </div>
       <div class="muted" style="margin-top:6px;font-size:12px">
-        <strong>Definitions:</strong>
-        Significant PTM hotspots = windows passing the composition-aware permutation test with FWER q ≤ 0.10. IDR localization follows the consensus disorder threshold (≥50% disordered residues). Variant markers come from ClinVar overlap (`variant_hotspot_overlap.tsv`).
+        <strong>Definitions:</strong><br>
+        <em>Significant PTM hotspot</em>: 51-residue window whose PTM density is higher than expected for that protein. We shuffle residues 10,000 times to build a composition-aware null model, compute an empirical q-value, and keep windows with FWER-adjusted q ≤ 0.10.<br>
+        <em>IDR region</em>: Residues where the consensus disorder score (MetaPredict plus supporting sources) ≥ 0.5 across the window, indicating the segment is predominantly disordered.<br>
+        <em>Curated PTM site</em>: Individual UniProt-annotated modification sites (phosphorylation, acetylation, methylation, ubiquitination, O-GlcNAc) that contribute to the hotspot density metric.<br>
+        <em>Variant marker</em>: ClinVar variant mapped to the sequence (`variant_hotspot_overlap.tsv`). Marker colour reflects classification (pathogenic red, benign blue, other/unknown brown); the marker appears at the variant’s residue position whether or not it overlaps a hotspot.
       </div>
       <div id="protein-table" style="margin-top:14px"></div>
     </section>
