@@ -73,6 +73,16 @@
     <div class="muted" style="margin-top:4px">Legend: <span style="display:inline-block;width:10px;height:10px;background:#2e7d32;margin:0 4px 0 8px"></span>IDR window <span style="display:inline-block;width:10px;height:10px;background:#6e6e6e;margin:0 4px 0 12px"></span>Ordered window</div>
   </section>
 
+  <section style="margin-top:24px">
+    <h2 style="margin:0 0 8px; font-size:18px">Featured Examples</h2>
+    <div class="muted">Curated proteins from the manuscript case studies and figures.</div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px">
+      <button class="pill" data-acc="P00533" title="EGFR — epidermal growth factor receptor">EGFR (P00533)</button>
+      <button class="pill" data-acc="O75530" title="EED — ultra-regulation case">EED (O75530)</button>
+      <button class="pill" data-acc="P37840" title="SNCA — alpha-synuclein">SNCA (P37840)</button>
+    </div>
+  </section>
+
   <div id="err" class="error" role="alert" style="display:none"></div>
 
   <footer>
@@ -242,6 +252,18 @@
 
       loadBtn.addEventListener('click', () => loadProtein(input.value));
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadProtein(input.value); });
+
+      // Wire featured example buttons
+      document.querySelectorAll('button.pill[data-acc]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const acc = btn.getAttribute('data-acc');
+          input.value = acc;
+          loadProtein(acc);
+        });
+      });
+
+      // Preload a featured example on first load
+      loadProtein('P00533');
     })();
   </script>
   <noscript>
